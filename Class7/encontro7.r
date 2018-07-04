@@ -6,6 +6,9 @@
 concrete <- read.csv("concrete.csv")
 str(concrete)
 
+hist(concrete$strength) # Verify if is a gaussian
+hist(concrete$cement)
+
 # custom normalization function
 normalize <- function(x) { 
   return((x - min(x)) / (max(x) - min(x)))
@@ -13,12 +16,12 @@ normalize <- function(x) {
 
 # apply normalization to entire data frame
 concrete_norm <- as.data.frame(lapply(concrete, normalize))
+hist(concrete_norm$strength) 
 
 # confirm that the range is now between zero and one
 summary(concrete_norm$strength)
 
-# compared to the original minimum and maximum
-summary(concrete$strength)
+summary(concrete$strength) # compared to the original minimum and maximum
 
 # create training and test data
 concrete_train <- concrete_norm[1:773, ]
@@ -27,6 +30,24 @@ concrete_test <- concrete_norm[774:1030, ]
 ## Step 3: Training a model on the data ----
 # train the neuralnet model
 library(neuralnet)
+
+# simple ANN with only a single hidden neuron
+set.seed(12345) # to guarantee repeatable results
+concrete_model <- neuralnet(formula = strength ~ cement + slag +
+                              ash + water + superplastic + 
+                              coarseagg + fineagg + age,
+                            data = concrete_train, hidden = c(10,10))
+
+# visualize the network topology
+plot(concrete_model)
+
+## Step 4: Evaluating model performance ----
+# obtain model results
+model_results <- compute(concrete_model, concrete_test[1:8])
+# obtain predicted strength values
+predicted_strength <- model_results$net.result
+# examine the correlation between predicted and actual values
+cor(predicted_strength, concrete_test$strength)
 
 # simple ANN with only a single hidden neuron
 set.seed(12345) # to guarantee repeatable results
@@ -105,3 +126,4 @@ letter_predictions_rbf <- predict(letter_classifier_rbf, letters_test)
 agreement_rbf <- letter_predictions_rbf == letters_test$letter
 table(agreement_rbf)
 prop.table(table(agreement_rbf))
+
